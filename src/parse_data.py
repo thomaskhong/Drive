@@ -1,6 +1,5 @@
 import osmnx as ox
 import geopandas as gpd
-from fastkml import kml
 from shapely.geometry import shape
 import pandas as pd
 import warnings
