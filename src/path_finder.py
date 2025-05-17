@@ -144,7 +144,7 @@ def remove_similar_paths(path_scores, similarity_threshold=0.5):
     accepted_indices = []
     accepted_sets = []
 
-    for i, row in tqdm(path_scores.iterrows(), total=len(path_scores)):
+    for i, row in tqdm(path_scores.iterrows(), total=len(path_scores), disable=True):
         current_set = row['path_nodes_set']
         is_similar = False
         for other_set in accepted_sets:
@@ -256,7 +256,7 @@ def plot_outputs(G, proposed_paths, start_lat, start_lon, output_path):
     m = folium.Map(location=[start_lat, start_lon], zoom_start=11)
 
     # Plot start
-    folium.Marker([start_lat, start_lon], popup="Start", icon=folium.Icon(color='green')).add_to(m)
+    folium.Marker([start_lat, start_lon], popup="Start", icon=folium.Icon(color='gray')).add_to(m)
 
     def get_color(val, vmin, vmax):
         norm = plt.Normalize(vmin=vmin, vmax=vmax)
@@ -265,7 +265,8 @@ def plot_outputs(G, proposed_paths, start_lat, start_lon, output_path):
         return f'rgba({int(rgba[0]*255)}, {int(rgba[1]*255)}, {int(rgba[2]*255)}, {rgba[3]})'
 
     colors = cycle(['red', 'blue', 'green', 'purple', 'orange'])
-    for path in proposed_paths['path_nodes'].values.tolist():
+    path_ids = proposed_paths['path_id'].values.tolist()
+    for path_num, path in enumerate(proposed_paths['path_nodes'].values.tolist()):
 
         path_edges = []
         path_color = next(colors)
@@ -291,9 +292,9 @@ def plot_outputs(G, proposed_paths, start_lat, start_lon, output_path):
                             color=path_color,
                             weight=5).add_to(m)
 
-    # # Plot nodes
-    # for idx, (lat, lon) in enumerate([(data['y'], data['x']) for i, data in nodes[nodes.index.isin([loops[0][0]][0])].iterrows()], start=1):
-    #     folium.Marker([lat, lon], popup=f"Waypoint {idx}", icon=folium.Icon(color='blue')).add_to(m)
+        # Plot helper markers
+        marker_node = path[len(path)//2]
+        folium.map.Marker([G.nodes[marker_node]['y'], G.nodes[marker_node]['x']], popup="Path Number: "+str(path_ids[path_num]), icon=folium.Icon(color=path_color)).add_to(m)
 
     # Show map
     m.save(output_path+"results.html")
@@ -312,26 +313,29 @@ def main():
 
     args = parser.parse_args()
 
+    print('>> Preparing graph...')
     G = load_graph(args.edges, args.nodes)
     start_node = ox.nearest_nodes(G, args.start_lon, args.start_lat)
     nodes, edges = ox.graph_to_gdfs(G, nodes=True, edges=True)
 
+    print('>> Calculating outbound paths...')
     outbound_paths = calculate_outbound_paths(G, start_node, target_distance=(args.target_distance)/2, max_paths=1500, max_depth=30)
+    print('   ', {len(outbound_paths)}, 'paths found')
+    print('>> Scoring outbound paths...')
     outbound_paths = calculate_scores(G, outbound_paths, args.start_lon, args.start_lat, nodes=nodes)
+    print('>> Removing similar paths...')
     filtered_outbound_paths = remove_similar_paths(outbound_paths, similarity_threshold=0.5)
+    print('>> Clustering results and selecting best outbound options...')
     clustered_outbound_paths = cluster_paths(filtered_outbound_paths, n_clusters=4)
     best_outbound_paths = select_top_paths_by_cluster(clustered_outbound_paths, top_n=5)
+    print('>> Plotting return journeys for best outbound path candidates...')
     completed_paths = create_full_loops(G, best_outbound_paths, start_node)
+    print('>> Calculating full journey scores and saving best options...')
     completed_paths = calculate_scores(G, completed_paths['path_nodes'].to_list(), args.start_lon, args.start_lat, nodes=nodes)
     proposed_paths = completed_paths.sort_values(by='score', ascending=False).head(5)
     plot_outputs(G, proposed_paths, args.start_lat, args.start_lon, args.output)
     save_output(proposed_paths, args.output)
-
-    
-    # gdf = paths_to_gdf(G, paths)
-
-    # gdf.to_file(args.output, layer='best_paths', driver='GPKG')
-    # print(f"Saved {len(gdf)} paths to {args.output}")
+    print('>> Results complete. View map in the results.html, and see route metrics in results.csv files. These have been saved to the output directory of your choice.')
 
 
 if __name__ == '__main__':
