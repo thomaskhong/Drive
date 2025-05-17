@@ -8,3 +8,4 @@ notebooks/cache/
 notebooks/extracted_kml
 data/
 cache/
+.vscode/

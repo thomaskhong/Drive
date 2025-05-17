@@ -4,12 +4,26 @@ from fastkml import kml
 from shapely.geometry import shape
 import pandas as pd
 import warnings
+import argparse
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
-def fetch_roads(place_name, network_type='drive'):
-    print(f"Fetching road network for: {place_name}")
-    G = ox.graph_from_place(place_name, network_type=network_type)
+def fetch_roads(center_point, dist_meters=1000, network_type='drive'):
+    """
+    Fetch road network data around a central coordinate within a specified distance.
+
+    Args:
+        center_point (tuple): (latitude, longitude)
+        dist_meters (int): Search radius in meters
+        network_type (str): Type of roads to retrieve (e.g., 'drive', 'walk')
+
+    Returns:
+        nodes, edges (GeoDataFrames)
+    """
+    print(f"Fetching road network within {dist_meters}m of {center_point}")
+    ox.utils.settings.overpass_rate_limit = False
+    ox.utils.settings.overpass_url = "https://overpass.kumi.systems/api"
+    G = ox.graph_from_point(center_point, dist=dist_meters, network_type=network_type)
     nodes, edges = ox.graph_to_gdfs(G, nodes=True, edges=True)
     edges = edges.to_crs("EPSG:4326")
     return nodes, edges
@@ -41,11 +55,24 @@ def save_outputs(edges, nodes, save_path, output_prefix="roads_with_curvature"):
     nodes.to_file(f"{save_path}nodes_{output_prefix}.gpkg", layer='nodes', driver='GPKG')
 
 def main():
-    place = "Peak District"  # 🔁 Change this as needed
-    kml_path = "data\great-britain.c_300.kml"               # 🔁 Replace with your file
-    save_path = "data/"
 
-    nodes, edges = fetch_roads(place)
+    parser = argparse.ArgumentParser(description="Fetch and enrich road data with curvature.")
+    parser.add_argument('--lat', type=float, required=True, help='Latitude of the center point')
+    parser.add_argument('--lon', type=float, required=True, help='Longitude of the center point')
+    parser.add_argument('--dist', type=int, default=25000, help='Search radius in meters (default: 25000)')
+    parser.add_argument('--kml', type=str, default='data/', required=True, help='Path to the KML file with curvature data')
+    parser.add_argument('--out', type=str, default='data/', help='Output directory (default: data/)')
+    parser.add_argument('--network', type=str, default='drive', help="Network type (e.g., 'drive', 'walk')")
+
+    args = parser.parse_args()
+
+    center_point = (args.lat, args.lon)
+    dist_meters = args.dist
+    kml_path = args.kml
+    save_path = args.out
+    network_type = args.network
+
+    nodes, edges = fetch_roads(center_point, dist_meters, network_type)
     curvature_gdf = parse_kml_curvature(kml_path)
     enriched_edges = join_curvature(edges, curvature_gdf)
     save_outputs(enriched_edges, nodes.copy(), save_path)
