@@ -9,7 +9,7 @@ Fun is defined as:
 
 The tool creates 'loops' from a starting point of a desired length, returning you to your point of origin - ideal for a fun day out of exploring! It proposes 5 of the best routes in a variety of directions for you to choose from, and shows these on an interactive map. A data file is also produced with more details of each route, allowing you to choose whichever fits with your driving style.
 
-Read below to get started!
+Use the below instructions to get started. There is also the Jupyter notebook `src/notebook.ipynb` for those who are more curious about the inner workings of the tool!
 
 ## Overview
 
