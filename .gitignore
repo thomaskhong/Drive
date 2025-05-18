@@ -9,3 +9,5 @@ notebooks/extracted_kml
 data/
 cache/
 .vscode/
+notebooks/
+src/data/

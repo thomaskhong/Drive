@@ -7,7 +7,7 @@ Fun is defined as:
 - avoiding residential areas (i.e.: where there is the potential for more variable speeds)
 - routes that do not have too few or too many crossing points, giving you equal chance to cruise and change direction
 
-The tool creates 'loops' from a starting point of a desired length, returning you to your point of origin - ideal for a fun day out of exploring! It proposes 5 routes of the best routes in a variety of directions for you to choose from, and presents these on a map. A data file is also produced with more details of each route, allowing you to choose whichever fits with your driving style.
+The tool creates 'loops' from a starting point of a desired length, returning you to your point of origin - ideal for a fun day out of exploring! It proposes 5 of the best routes in a variety of directions for you to choose from, and shows these on an interactive map. A data file is also produced with more details of each route, allowing you to choose whichever fits with your driving style.
 
 Read below to get started!
 
